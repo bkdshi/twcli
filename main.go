@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
+	"net/http"
 	"os/exec"
 	"strings"
 
 	"golang.org/x/oauth2"
 )
 
-func getToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
+func getFirstToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 	challenge := "gwSi9PRAQ3uEKQPKyJip9LCTLTXW5eRADsFb8FztJCsEKN7K9"
 	codeChallenge := oauth2.SetAuthURLParam("code_challenge", challenge)
 	codeChallengeMethod := oauth2.SetAuthURLParam("code_challenge_method", "plain")
@@ -36,7 +36,70 @@ func getToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 	return token
 }
 
-func authorize() {}
+func authorize(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
+	raw, err := ioutil.ReadFile("./token.json")
+
+	// if there is not "token.json", create a new token and make file.
+	if err != nil {
+		fmt.Println(err.Error())
+		token := getFirstToken(ctx, conf)
+		bytes, _ := json.MarshalIndent(token, "", "	")
+		// fmt.Println(string(bytes))
+		_ = ioutil.WriteFile("token.json", bytes, 0644)
+		return token
+	}
+	// load token from "token.json".
+	var token *oauth2.Token
+
+	json.Unmarshal(raw, &token)
+	// fmt.Println(*token)
+
+	// renew token process.
+	freshTokenSorce := conf.TokenSource(ctx, token)
+	new_token, err := freshTokenSorce.Token()
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	if token == new_token {
+		return token
+		// fmt.Println("TOKEN IS SAME")
+	} else {
+		// fmt.Println("TOKEN IS RENEWED")
+		// fmt.Println(*new_token)
+		bytes, _ := json.MarshalIndent(new_token, "", "	")
+		// fmt.Println(string(bytes))
+		_ = ioutil.WriteFile("token.json", bytes, 0644)
+		return new_token
+	}
+
+	// return token
+}
+
+func search(client *http.Client, id string) {
+	fmt.Println(id)
+	url := fmt.Sprintf("https://api.twitter.com/2/tweets?ids=%v", id)
+	res, err := client.Get(url)
+
+	if err != nil {
+		fmt.Println(res)
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	byteArray, _ := ioutil.ReadAll(res.Body)
+	fmt.Println(string(byteArray)) // htmlをstringで取得
+}
+
+func tweet(client *http.Client, text string) {
+	json := fmt.Sprintf(`{"text": "%v"}`, text)
+	res, err := client.Post("https://api.twitter.com/2/tweets", "application/json", bytes.NewBuffer([]byte(json)))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer res.Body.Close()
+	byteArray, _ := ioutil.ReadAll(res.Body)
+	fmt.Println(string(byteArray)) // htmlをstringで取得
+}
 
 func main() {
 	search_id := flag.String("s", "", "search id")
@@ -54,63 +117,14 @@ func main() {
 		RedirectURL: "https://www.bkds-hi.com/callback",
 	}
 
-	raw, err := ioutil.ReadFile("./token.json")
-	if err != nil {
-		fmt.Println(err.Error())
-		token := getToken(ctx, conf)
-		bytes, _ := json.MarshalIndent(token, "", "	")
-		fmt.Println(string(bytes))
-		_ = ioutil.WriteFile("token.json", bytes, 0644)
-		os.Exit(1)
-	}
-
-	var token *oauth2.Token
-
-	json.Unmarshal(raw, &token)
-	fmt.Println(*token)
-
-	tmp := conf.TokenSource(ctx, token)
-	new_token, err := tmp.Token()
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	if token == new_token {
-		fmt.Println("TOKEN IS SAME")
-	} else {
-		fmt.Println("TOKEN IS RENEWED")
-		bytes, _ := json.MarshalIndent(new_token, "", "	")
-		fmt.Println(string(bytes))
-		_ = ioutil.WriteFile("token.json", bytes, 0644)
-	}
-
-	fmt.Println(*new_token)
+	token := authorize(ctx, conf)
 
 	client := conf.Client(ctx, token)
 
 	if len(*search_id) > 0 {
-		fmt.Println(*search_id)
-		url := fmt.Sprintf("https://api.twitter.com/2/tweets?ids=%v", *search_id)
-		res, err := client.Get(url)
-
-		if err != nil {
-			fmt.Println(res)
-			log.Fatal(err)
-		}
-		defer res.Body.Close()
-		byteArray, _ := ioutil.ReadAll(res.Body)
-		fmt.Println(string(byteArray)) // htmlをstringで取得
+		search(client, *search_id)
 	} else {
-		text := strings.Join(flag.Args(), " ")
-		json := fmt.Sprintf(`{"text": "%v"}`, text)
-		fmt.Println(json)
-		res, err := client.Post("https://api.twitter.com/2/tweets", "application/json", bytes.NewBuffer([]byte(json)))
-		defer res.Body.Close()
-		if err != nil {
-			log.Fatal(err)
-		}
-		byteArray, _ := ioutil.ReadAll(res.Body)
-		fmt.Println(string(byteArray)) // htmlをstringで取得
+		tweet(client, strings.Join(flag.Args(), " "))
 	}
 
 }
