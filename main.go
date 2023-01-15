@@ -45,6 +45,7 @@ func getFirstToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 	// fmt.Printf("Visit the URL for the auth dialog: %v\n", url)
 	err := exec.Command("xdg-open", url).Start()
 
+	fmt.Println("Please in put code which located on your web browser.")
 	var code string
 	if _, err := fmt.Scan(&code); err != nil {
 		log.Fatal(err)
