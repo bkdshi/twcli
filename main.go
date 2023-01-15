@@ -3,13 +3,16 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/oauth2"
@@ -20,8 +23,22 @@ type Tweet struct {
 	Text string `json:"text"`
 }
 
+func makeChallenge() string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, 50)
+	if _, err := rand.Read(b); err != nil {
+		return ""
+	}
+	var challenge string
+	for _, v := range b {
+		challenge += string(letters[int(v)%len(letters)])
+	}
+
+	return challenge
+}
+
 func getFirstToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
-	challenge := "gwSi9PRAQ3uEKQPKyJip9LCTLTXW5eRADsFb8FztJCsEKN7K9"
+	challenge := makeChallenge()
 	codeChallenge := oauth2.SetAuthURLParam("code_challenge", challenge)
 	codeChallengeMethod := oauth2.SetAuthURLParam("code_challenge_method", "plain")
 	url := conf.AuthCodeURL("state", codeChallenge, codeChallengeMethod)
@@ -42,7 +59,15 @@ func getFirstToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 }
 
 func getToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
-	raw, err := ioutil.ReadFile("./token.json")
+	dir := os.Getenv("HOME")
+	dir = filepath.Join(dir, ".config", "twcli")
+
+	if err := os.MkdirAll(dir, 0700); err != nil {
+		return nil
+	}
+
+	file := filepath.Join(dir, "token.json")
+	raw, err := ioutil.ReadFile(file)
 
 	// if there is not "token.json", create a new token and make file.
 	if err != nil {
@@ -50,7 +75,7 @@ func getToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 		token := getFirstToken(ctx, conf)
 		bytes, _ := json.MarshalIndent(token, "", "	")
 		// fmt.Println(string(bytes))
-		_ = ioutil.WriteFile("token.json", bytes, 0644)
+		_ = ioutil.WriteFile(file, bytes, 0644)
 		return token
 	}
 	// load token from "token.json".
@@ -74,7 +99,7 @@ func getToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 		// fmt.Println(*new_token)
 		bytes, _ := json.MarshalIndent(new_token, "", "	")
 		// fmt.Println(string(bytes))
-		_ = ioutil.WriteFile("token.json", bytes, 0644)
+		_ = ioutil.WriteFile(file, bytes, 0644)
 		return new_token
 	}
 
