@@ -1,4 +1,4 @@
-package twcli
+package main
 
 import (
 	"bytes"
