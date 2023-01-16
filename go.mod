@@ -1,4 +1,4 @@
-module github.com/yk0o5h2e4i/twcli
+module github.com/bkdshi/twcli
 
 go 1.19
 
