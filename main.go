@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"strings"
 
 	"github.com/bkdshi/twcli/twcore"
@@ -28,7 +29,8 @@ func main() {
 			app.ShowList(flag.Args()[0])
 		}
 	} else {
-		app.Tweet(strings.Join(flag.Args(), " "))
+		result := app.Tweet(strings.Join(flag.Args(), " "))
+		fmt.Println(result)
 	}
 
 }

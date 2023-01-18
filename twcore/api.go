@@ -46,7 +46,7 @@ func (app *App) Search(id string) {
 	fmt.Println(string(byteArray)) // htmlをstringで取得
 }
 
-func (app *App) Tweet(text string) {
+func (app *App) Tweet(text string) string {
 	json := fmt.Sprintf(`{"text": "%v"}`, text)
 	res, err := app.client.Post("https://api.twitter.com/2/tweets", "application/json", bytes.NewBuffer([]byte(json)))
 	if err != nil {
@@ -54,7 +54,7 @@ func (app *App) Tweet(text string) {
 	}
 	defer res.Body.Close()
 	byteArray, _ := ioutil.ReadAll(res.Body)
-	fmt.Println(string(byteArray)) // htmlをstringで取得
+	return string(byteArray)
 }
 
 func (app *App) GetList(username string) []Tweet {
