@@ -23,9 +23,9 @@ func main() {
 		app.Search(*search_id)
 	} else if *show_tweet {
 		if len(flag.Args()) == 0 {
-			app.List("me")
+			app.ShowList("me")
 		} else {
-			app.List(flag.Args()[0])
+			app.ShowList(flag.Args()[0])
 		}
 	} else {
 		app.Tweet(strings.Join(flag.Args(), " "))

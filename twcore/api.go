@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type App struct {
@@ -56,9 +57,9 @@ func (app *App) Tweet(text string) {
 	fmt.Println(string(byteArray)) // htmlをstringで取得
 }
 
-func (app *App) List(username string) {
+func (app *App) GetList(username string) []Tweet {
 	if username == "me" {
-		user := app.getMe()
+		user := app.GetMe()
 		username = user.Id
 	}
 	query := fmt.Sprintf("from:%v", username)
@@ -79,14 +80,17 @@ func (app *App) List(username string) {
 	var response Response
 	json.Unmarshal(body, &response)
 
-	response_json, err := json.MarshalIndent(response.Data, "", "\t")
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Println(string(response_json))
+	return response.Data
 }
 
-func (app *App) getMe() User {
+func (app *App) ShowList(username string) {
+	tweets := app.GetList(username)
+	for _, v := range tweets {
+		fmt.Printf("id: %v\t\t%v\n", v.Id, strings.ReplaceAll(v.Text, "\n", "\t"))
+	}
+}
+
+func (app *App) GetMe() User {
 	res, err := app.client.Get("https://api.twitter.com/2/users/me")
 
 	if err != nil {
@@ -107,7 +111,7 @@ func (app *App) getMe() User {
 }
 
 func (app *App) ShowMe() {
-	User := app.getMe()
+	User := app.GetMe()
 
 	user_json, err := json.MarshalIndent(User, "", "\t")
 	if err != nil {
