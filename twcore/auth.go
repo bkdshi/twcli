@@ -100,8 +100,8 @@ func getToken(ctx context.Context, conf *oauth2.Config) *oauth2.Token {
 
 func getConfig() *oauth2.Config {
 	conf := &oauth2.Config{
-		ClientID:     "NHZXR280YjBNWFhhUEhBczVYX2o6MTpjaQ",
-		ClientSecret: "3wMtYEN34sQsHyqWg8-Je6UgQ50KPC6rl_-4MhnCtS4Z9N0bS4",
+		ClientID:     "TWJXNDk0dlBsa25ILS1vcXZSMm06MTpjaQ",
+		ClientSecret: "rzNOyRZZ2luULq7WRxg9WyjlCMcJ4QJBZQf8D8g9mKOSaGYi2_",
 		Scopes:       []string{"tweet.read", "tweet.write", "users.read", "offline.access"},
 		Endpoint: oauth2.Endpoint{
 			AuthURL:  "https://twitter.com/i/oauth2/authorize",
